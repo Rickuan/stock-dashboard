@@ -136,3 +136,6 @@ rm -rf frontend/dist
    Any API keys (within `.env` files), passwords, or production database configurations should not be committed to Git. Ensure your `.gitignore` correctly ignores these files.
 4. **Database Files**:
    This system currently utilizes SQLite (`backend/stock-dashboard.db`). Pay close attention to the write permissions of this folder/file. If deploying to a public-facing server, do not store it in a directory where a web server (like Nginx static directories) can serve/download it directly.
+
+## 6. API test page
+* Visit [site](http://localhost:8000/docs/)
