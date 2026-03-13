@@ -8,14 +8,14 @@ Below are instructions on how to clone the project to your local machine, instal
 
 ## 1. Get the Project (Clone)
 
+> Note: If you already have the source code downloaded, please skip to step 2
+
 Open your terminal (Command Prompt / PowerShell / Terminal) and run the following commands to clone the project to your computer:
 
 ```bash
-git clone https://github.com/YourProjectURL/stock-dashboard.git
+git clone
 cd stock-dashboard
 ```
-
-*(Note: If you already have the source code downloaded, please skip to step 2)*
 
 ---
 
