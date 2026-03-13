@@ -31,21 +31,27 @@ def fetch_twse_prices():
         print(f"Error fetching TWSE openapi: {e}")
     return {}
 
-def fetch_yahoo_finance_prices():
-    url = "https://query1.finance.yahoo.com/v8/finance/chart/{yf_sym}?interval=1d&range=1d"
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    try:
-        res = requests.get(url, headers=headers, timeout=10)
-        if res.status_code == 200:
-            data = res.json()
-            meta = data['chart']['result'][0]['meta']
-            price = meta['regularMarketPrice']
-            print(f"Updated {sym} from Yahoo Finance: ${price}")
-        else:
-            print(f"Failed to fetch {sym} from Yahoo Finance, status {res.status_code}")
-    except Exception as e:
-        print(f"Error fetching {sym} from Yahoo Finance: {e}")
-    return {}
+def fetch_yahoo_finance_prices(symbols: list[str]) -> dict[str, float]:
+    prices = {}
+    for sym in symbols:
+        # Some TWSE stocks might enter here if TWSE API fails, we could append .TW for Yahoo
+        # But for generic symbols (like AAPL), we just use the symbol.
+        # Check if it's purely numeric (so it's a TW stock not found in TWSE for some reason)
+        yf_sym = sym + ".TW" if sym.isdigit() else sym
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yf_sym}?interval=1d&range=1d"
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        try:
+            res = requests.get(url, headers=headers, timeout=10)
+            if res.status_code == 200:
+                data = res.json()
+                meta = data['chart']['result'][0]['meta']
+                price = meta['regularMarketPrice']
+                prices[sym] = price
+            else:
+                print(f"Failed to fetch {sym} from Yahoo Finance, status {res.status_code}")
+        except Exception as e:
+            print(f"Error fetching {sym} from Yahoo Finance: {e}")
+    return prices
 
 def fetch_prices():
     """
@@ -60,7 +66,10 @@ def fetch_prices():
     print(f"[{datetime.now()}] Fetching prices for {symbols}...")
     
     twse_data = fetch_twse_prices()
-    yahoo_data = fetch_yahoo_finance_prices()
+    
+    # Filter symbols not found in TWSE to be fetched from Yahoo
+    yahoo_symbols = [sym for sym in symbols if sym not in twse_data]
+    yahoo_data = fetch_yahoo_finance_prices(yahoo_symbols) if yahoo_symbols else {}
 
     for sym in symbols:
         price = None
@@ -68,7 +77,7 @@ def fetch_prices():
         if sym in twse_data:
             price = twse_data[sym]
             print(f"Updated {sym} from TWSE: ${price}")
-        else:
+        elif sym in yahoo_data:
             price = yahoo_data[sym]
             print(f"Updated {sym} from Yahoo Finance: ${price}")
 
