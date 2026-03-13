@@ -17,6 +17,16 @@ export const fetchTransactions = async (symbol?: string): Promise<Transaction[]>
   return data;
 };
 
+export const deleteTransactions = async () => {
+  const { data } = await api.delete('/api/transactions');
+  return data;
+};
+
+export const updateMockData = async () => {
+  const { data } = await api.post('/api/transactions/mock');
+  return data;
+};
+
 export const fetchDashboard = async (method: string) => {
   const { data } = await api.get('/api/dashboard', {
     params: { method },

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { uploadHistoryCsv } from '@/services/api';
+import { uploadHistoryCsv, deleteTransactions, updateMockData } from '@/services/api';
 import { Loader2 } from 'lucide-react';
 
 export type CostMethod = 'FIFO' | 'AVERAGE';
@@ -48,8 +48,30 @@ export function Settings() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const updateMockMutation = useMutation({
+    mutationFn: updateMockData,
+    onSuccess: () => {
+      alert("Mock Data 更新成功！");
+      queryClient.invalidateQueries();
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteTransactions,
+    onSuccess: () => {
+      alert("所有資料已刪除！");
+      queryClient.invalidateQueries();
+    }
+  });
+
   const handleMockData = () => {
-    alert("已自動生成模擬資料 (Mock Data)");
+    updateMockMutation.mutate();
+  };
+
+  const handleDeleteData = () => {
+    if (confirm("確定要刪除所有的交易紀錄嗎？此動作無法復原。")) {
+      deleteMutation.mutate();
+    }
   };
 
   const handleUploadClick = () => {
@@ -114,10 +136,20 @@ export function Settings() {
               上傳歷史紀錄 (CSV)
             </button>
             <button
-              onClick={handleMockData}
-              className="px-6 py-3 rounded-lg font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400 transition-all"
+              onClick={handleDeleteData}
+              disabled={deleteMutation.isPending}
+              className="px-6 py-3 flex items-center gap-2 rounded-lg font-medium bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 transition-all disabled:opacity-50"
             >
-              自動生成 Mock Data
+              {deleteMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+              刪除 Data
+            </button>
+            <button
+              onClick={handleMockData}
+              disabled={updateMockMutation.isPending}
+              className="px-6 py-3 flex items-center gap-2 rounded-lg font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400 transition-all disabled:opacity-50"
+            >
+              {updateMockMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+              更新 Mock Data
             </button>
           </div>
         </div>
