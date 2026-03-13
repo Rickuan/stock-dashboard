@@ -1,5 +1,7 @@
-import { TrendingUp, DollarSign, Activity } from 'lucide-react';
+import { TrendingUp, DollarSign, Activity, Loader2 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useQuery } from '@tanstack/react-query';
+import { fetchDashboard } from '@/services/api';
 
 const mockData = [
   { date: '2023-01', value: 1000000 },
@@ -11,6 +13,32 @@ const mockData = [
 ];
 
 export function Dashboard() {
+  const savedMethod = localStorage.getItem('costMethod') || 'AVERAGE';
+  
+  const { data: dashboard, isLoading, isError } = useQuery({
+    queryKey: ['dashboard', savedMethod],
+    queryFn: () => fetchDashboard(savedMethod)
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-24">
+        <Loader2 className="h-10 w-10 animate-spin text-brand" />
+      </div>
+    );
+  }
+
+  if (isError || !dashboard) {
+    return (
+      <div className="p-4 bg-red-50 text-red-600 rounded-lg">
+        無法讀取儀表板資料，請檢查後端連線狀態。
+      </div>
+    );
+  }
+
+  const formatCurrency = (val: number) => 
+    new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(val);
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">資產總覽</h2>
@@ -23,7 +51,7 @@ export function Dashboard() {
             </div>
             <div>
               <p className="text-sm text-slate-500 dark:text-slate-300">總投入成本</p>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">$1,000,000</h3>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{formatCurrency(dashboard.total_cost)}</h3>
             </div>
           </div>
         </div>
@@ -35,7 +63,7 @@ export function Dashboard() {
             </div>
             <div>
               <p className="text-sm text-slate-500 dark:text-slate-300">目前預估淨值</p>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">$1,250,000</h3>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{formatCurrency(dashboard.total_value)}</h3>
             </div>
           </div>
         </div>
@@ -47,7 +75,10 @@ export function Dashboard() {
             </div>
             <div>
               <p className="text-sm text-slate-500 dark:text-slate-300">未實現損益</p>
-              <h3 className="text-2xl font-bold text-green-500">+$250,000 (25%)</h3>
+              <h3 className={`text-2xl font-bold ${dashboard.unrealized_pnl >= 0 ? "text-green-500" : "text-red-500"}`}>
+                {dashboard.unrealized_pnl >= 0 ? "+" : ""}{formatCurrency(dashboard.unrealized_pnl)} 
+                <span className="text-sm ml-2">({((dashboard.unrealized_pnl / (dashboard.total_cost || 1)) * 100).toFixed(2)}%)</span>
+              </h3>
             </div>
           </div>
         </div>

@@ -1,4 +1,7 @@
+import { useQuery } from '@tanstack/react-query';
+import { fetchTransactions } from '@/services/api';
 import { Transaction, TransactionType } from '@/types/transaction';
+import { Loader2 } from 'lucide-react';
 
 export function HistoryTable({ transactions }: { transactions: Transaction[] }) {
   return (
@@ -45,16 +48,26 @@ export function HistoryTable({ transactions }: { transactions: Transaction[] }) 
 }
 
 export function History() {
-  const transactions: Transaction[] = [
-    { id: 1, date: '2023-10-01', time: '09:05', symbol: '2330', name: '台積電', type: TransactionType.BUY, price: 540, shares: 1000, fee: 769, tax: 0 },
-    { id: 2, date: '2023-10-15', time: '11:20', symbol: '0050', name: '元大台灣50', type: TransactionType.BUY, price: 125.5, shares: 2000, fee: 357, tax: 0 },
-    { id: 3, date: '2023-11-05', time: '13:15', symbol: '2330', name: '台積電', type: TransactionType.SELL, price: 580, shares: 1000, fee: 826, tax: 1740 },
-  ];
+  const { data: transactions = [], isLoading, isError } = useQuery({
+    queryKey: ['transactions'],
+    queryFn: () => fetchTransactions()
+  });
 
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-slate-900 dark:text-white">交易紀錄</h2>
-      <HistoryTable transactions={transactions} />
+      
+      {isLoading ? (
+        <div className="flex items-center justify-center p-12">
+          <Loader2 className="h-8 w-8 animate-spin text-brand-light" />
+        </div>
+      ) : isError ? (
+        <div className="p-4 bg-red-50 text-red-600 rounded-lg">
+          無法取得交易紀錄，請確定後端伺服器有正常運行。
+        </div>
+      ) : (
+        <HistoryTable transactions={transactions} />
+      )}
     </div>
   );
 }
