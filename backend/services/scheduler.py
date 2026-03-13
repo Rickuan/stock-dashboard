@@ -20,11 +20,37 @@ def get_unique_symbols():
     db.close()
     return [s[0] for s in symbols]
 
+def fetch_twse_prices():
+    url = "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL"
+    try:
+        res = requests.get(url, timeout=10)
+        if res.status_code == 200:
+            data = res.json()
+            return {item["Code"]: float(item["ClosingPrice"]) for item in data if "Code" in item and "ClosingPrice" in item and item["ClosingPrice"] != ""}
+    except Exception as e:
+        print(f"Error fetching TWSE openapi: {e}")
+    return {}
+
+def fetch_yahoo_finance_prices():
+    url = "https://query1.finance.yahoo.com/v8/finance/chart/{yf_sym}?interval=1d&range=1d"
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    try:
+        res = requests.get(url, headers=headers, timeout=10)
+        if res.status_code == 200:
+            data = res.json()
+            meta = data['chart']['result'][0]['meta']
+            price = meta['regularMarketPrice']
+            print(f"Updated {sym} from Yahoo Finance: ${price}")
+        else:
+            print(f"Failed to fetch {sym} from Yahoo Finance, status {res.status_code}")
+    except Exception as e:
+        print(f"Error fetching {sym} from Yahoo Finance: {e}")
+    return {}
+
 def fetch_prices():
     """
     Fetch current stock prices for all holdings. 
-    This uses Yahoo Finance unofficial API endpoint as a free robust alternative for TSWE.
-    E.g. 2330.TW
+    This uses TWSE OpenAPI endpoint first, and falls back to Yahoo Finance.
     """
     symbols = get_unique_symbols()
     if not symbols:
@@ -32,23 +58,22 @@ def fetch_prices():
         return
 
     print(f"[{datetime.now()}] Fetching prices for {symbols}...")
+    
+    twse_data = fetch_twse_prices()
+    yahoo_data = fetch_yahoo_finance_prices()
+
     for sym in symbols:
-        # Convert simple TW identifier to Yahoo Finance identifier (assumes .TW list mostly)
-        yf_sym = f"{sym}.TW"
-        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yf_sym}?interval=1d&range=1d"
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        try:
-            res = requests.get(url, headers=headers)
-            if res.status_code == 200:
-                data = res.json()
-                meta = data['chart']['result'][0]['meta']
-                current_price = meta['regularMarketPrice']
-                PRICE_CACHE[sym] = current_price
-                print(f"Updated {sym}: ${current_price}")
-            else:
-                print(f"Failed to fetch {sym}, status {res.status_code}")
-        except Exception as e:
-            print(f"Error fetching {sym}: {e}")
+        price = None
+        # Try TWSE first
+        if sym in twse_data:
+            price = twse_data[sym]
+            print(f"Updated {sym} from TWSE: ${price}")
+        else:
+            price = yahoo_data[sym]
+            print(f"Updated {sym} from Yahoo Finance: ${price}")
+
+        if price is not None:
+            PRICE_CACHE[sym] = price
 
     print(f"[{datetime.now()}] Price cache updated: {PRICE_CACHE}")
 
