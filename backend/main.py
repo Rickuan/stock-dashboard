@@ -13,7 +13,7 @@ import models
 import schemas
 from database import engine, get_db
 from services.calculator import calculate_average_cost, calculate_fifo_cost
-from services.scheduler import PRICE_CACHE
+from services.scheduler import PRICE_CACHE, fetch_prices
 
 # Create DB tables
 models.Base.metadata.create_all(bind=engine)
@@ -47,6 +47,9 @@ def delete_all_transactions(db: Session = Depends(get_db)):
 def create_mock_data():
     import mock_data
     mock_data.seed_db()
+    # Trigger an immediate price refresh since new symbols might have been added
+    logger.info("Triggering price fetch for mock data...")
+    fetch_prices()
     return {"message": "Mock data correctly generated and seeded"}
 
 @app.post("/api/login")
